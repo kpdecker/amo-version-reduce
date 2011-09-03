@@ -5,7 +5,7 @@ Simple utility that reduces the detailed host application version statistics to 
 
 ## Installation
 
-> npm install amo-version-reduce
+> npm install -g amo-version-reduce
 
 ## Usage
 
