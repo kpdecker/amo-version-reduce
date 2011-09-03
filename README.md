@@ -5,15 +5,15 @@ Simple utility that reduces the detailed host application version statistics to 
 
 ## Installation
 
-| npm install amo-version-reduce
+> npm install amo-version-reduce
 
 ## Usage
 
-| Usage: amo-version-reduce fileName
-|    inputFile : CSV file downloaded from AMO Extension statistics page
-|
-| Options:
-|   --precision, -p  Precision. Defines the number of version components that are considered unique.  [default: 2]
+> Usage: amo-version-reduce fileName
+>    inputFile : CSV file downloaded from AMO Extension statistics page
+>
+> Options:
+>   --precision, -p  Precision. Defines the number of version components that are considered unique.  [default: 2]
 
 ## License
 
