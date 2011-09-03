@@ -1,0 +1,22 @@
+{
+  "name": "amo-version-reduce",
+  "description": "Simple utility that reduces the detailed host application version statistics",
+  "version": "1.0.0",
+  "keywords": "amo extension version statistics",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kpdecker/amo-version-reduce.git"
+  },
+  "engines": {
+    "node": ">=0.4.7"
+  },
+  "dependencies": {
+      "optimist": "~0.2",
+      "lines": "~1.0"
+  },
+  "devDependencies": {},
+  "bin": {
+    "amo-version-reduce": "bin/amo-version-reduce"
+  },
+  "preferGlobal": true
+}
