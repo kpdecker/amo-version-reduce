@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+
+// https://addons.mozilla.org/en-US/firefox/pages/appversions/
+const APP_NAME_LUT = {
+  '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}': 'firefox',
+  '{3550f703-e582-4d05-9a08-453d09bdfdc6}': 'thunderbird',
+  '{a23983c0-fd0e-11dc-95ff-0800200c9a66}': 'mobile',
+  '{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}': 'seamonkey',
+  '{718e30fb-e89b-41dd-9da7-e25a45638b28}': 'sunbird'
+};
+
+var fs = require('fs'),
+    lines = require('lines');
+
+var optimist = require('optimist')
+    .usage('AMO Stats Aggregator.\nUsage: $0 fileName', {
+      'precision': {
+        'description': 'Precision. Defines the number of version components that are considered unique.',
+        'default': 2,
+        'alias': 'p'
+      },
+    })
+
+    .check(function(argv) {
+      if (argv.precision < 1) {
+        throw 'Precision must be 1 or greater';
+      }
+
+      if (!argv._.length) {
+        throw 'Must define input file.';
+      }
+
+      argv._.forEach(function(file) {
+        try {
+          fs.statSync(file);
+        } catch (err) {
+          throw 'Unable to open file "' + file + '"';
+        }
+      });
+    }),
+  argv = optimist.argv;
+
+
+var bucketRegex = (function() {
+  var bucketComponents = '';
+  for (var i = 1; i < argv.precision; i++) {
+    bucketComponents += '\\.?\\d*';
+  }
+  console.log(argv, argv.precision, i, bucketComponents);
+  return new RegExp('^(\\d*' + bucketComponents + ').*$');
+})();
+
+var columns = [];
+
+var input = fs.createReadStream(argv._[0]);
+input.setEncoding('utf8');
+lines(input);
+
+input.on('line', function(line) {
+  if (/^#/.test(line)) {
+    // Process the header, ignore everything else
+    var match = /^# Fields: \[(.*)\]$/.exec(line);
+    if (match) {
+      var columnNames = match[1].split(';'),
+          apps = {};
+
+      columns = [];
+
+      // Pull out all of the single columns and app version information
+      columnNames.forEach(function(columnName, i) {
+        var name = columnName.split('/');
+        if (name.length === 1) {
+          // Assume that anything without a / is something we won't be parsing
+          columns.push({name: name[0], source: i});
+        } else {
+          var app = apps[name[0]] = (apps[name[0]] || {versions: []});
+          app.versions.push({version: name[1], source: i, name: columnName});
+        }
+      });
+
+      // Combine versions
+      for (var appName in apps) {
+        var app = apps[appName],
+            buckets = {};
+
+        appName = APP_NAME_LUT[appName];
+
+        app.versions.forEach(function(version) {
+          var match = bucketRegex.exec(version.version);
+
+          if (!match) {
+            // Unknown, leave it as is
+            columns.push(version);
+          } else {
+            var bucketName = match[1];
+            var bucket = buckets[bucketName] = (buckets[bucketName] || {name: appName + '/' + bucketName, sources: []});
+            bucket.sources.push(version.source);
+          }
+        });
+
+        for (var bucketName in buckets) {
+          columns.push(buckets[bucketName]);
+        }
+      }
+
+      columns.sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+      });
+
+      console.log(columns.map(function(col) { return col.name; }).join(','));
+    }
+  } else {
+    // Remap and output the actual data
+    var columnData = line.split(',');
+    console.log(columns.map(function(columnSpec) {
+      if (columnSpec.sources) {
+        return columnSpec.sources.reduce(function(prev, cur) {
+          return (prev || 0) + parseInt(columnData[cur], 10);
+        }, 0);
+      } else {
+        return columnData[columnSpec.source];
+      }
+    }).join(','));
+  }
+});
